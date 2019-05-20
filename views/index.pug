@@ -1,0 +1,242 @@
+extends layout
+
+block scripts
+    script.
+        $(function() {
+            let todos = [];
+            $('#deadline').datetimepicker();
+            $('#deadline').data("DateTimePicker").format('YYYY-MM-DD HH:mm');
+
+            initTodoList();
+
+            function initTodoList() {
+                $.ajax({
+                    url: '/todos',
+                    type: 'get',
+                    success: function (data) {
+                        todos = data;
+                        invalidateTable();
+                    }
+                });
+            }
+
+            function addTodoList(todo) {
+                $.ajax({
+                url: '/todos',
+                    type: 'post',
+                    data: todo,
+                    success: function (data) {
+                    initTodoList();
+                }
+                });
+            }
+
+            function completeTodoList(row) {
+                const currentRow = $(row).closest("tr");
+                const id = currentRow.find("td:eq(0)").text();
+
+                $.ajax({
+                    url: '/todos/' + id,
+                    type: 'put',
+                    data: {completed: true},
+                    success: function (data) {
+                        initTodoList();
+                    }
+                });
+            }
+
+            function editTodoList(row) {
+                const currentRow = $(row).closest("tr");
+                const id = currentRow.find("td:eq(0)").text();
+                const title = currentRow.find("td:eq(1)").text();
+                const content = currentRow.find("td:eq(2)").text();
+
+                $.ajax({
+                    url: '/todos/' + id,
+                    type: 'put',
+                    data: {title: title, content:content},
+                    success: function (data) {
+                        todos.forEach(function(elem) {
+                            if (elem._id == id) {
+                                elem.title = title;
+                                elem.content = content;
+                            }
+                        })
+                        // do nothing.
+                    }
+                });
+            }
+
+            function delTodoList(row) {
+                const currentRow = $(row).closest("tr");
+                const id = currentRow.find("td:eq(0)").text();
+
+                $.ajax({
+                url: '/todos/' + id,
+                    type: 'delete',
+                    success: function (data) {
+                        initTodoList();
+                    }
+                });
+            }
+
+            function clearTable() {
+                const rows = $('.table tbody > tr').toArray().slice(1);
+                rows.forEach(function (row) {
+                    row.remove();
+                })
+            }
+
+            function invalidateTable() {
+                clearTable();
+                todos.sort(function(x, y) {
+                   // sort by completed.
+                    if (x.completed && !y.completed) {
+                       return 1;
+                   }  else if (!x.completed && y.completed) {
+                       return -1;
+                   }
+
+                   // sort by deadline.
+                    if (x.deadline && !y.deadline) {
+                        return -1;
+                    } else if (!x.deadline && y.deadline) {
+                        return 1;
+                    } else if (x.deadline && y.deadline) {
+                        return moment(x.deadline).diff(y.deadline);
+                    }
+                   return 0;
+                });
+                todos.forEach(function (todo) {
+                    addRowToTable(todo);
+                });
+            }
+
+            function addRowToTable(todo) {
+                todo.content = todo.content || '';
+                todo.priority = todo.priority || '';
+                todo.deadline = todo.deadline || '';
+
+                let trClass = '';
+                let disabled = '';
+                if (todo.deadline !== '') {
+                    let now = moment();
+                    todo.deadline = moment(todo.deadline).format('YYYY-MM-DD hh:mm');
+                    if (now.diff(todo.deadline) > 0) {
+                        trClass = 'table-danger';
+                    }
+                }
+                if (todo.completed) {
+                    trClass = 'table-success';
+                    disabled = 'disabled';
+                }
+                $(".table").append("<tr class='" + trClass + "'><td class='invisible'>" + todo._id + "</td><td>" + todo.title + "</td><td>" + todo.content + "</td><td>" + todo.priority + "</td><td>" + todo.deadline + "</td><td><button type='button' id='complete-button' class='btn btn-outline-success' " + disabled + ">Complete</button><button type='button' id='edit-button' class='btn btn-outline-warning' " + disabled + ">Edit</button><button type='button' id='remove-button' class='btn btn-outline-danger'>Remove</button></td></tr>");
+            }
+
+            function toEditable(row) {
+                const currentRow = $(row).closest("tr");
+                const titleTd = currentRow.find("td:eq(1)");
+                const title = titleTd.text();
+                const contentTd = currentRow.find("td:eq(2)");
+                const content = contentTd.text();
+
+                titleTd.html("<input type='text' class='form-control' value='" + title + "'/>");
+                contentTd.html("<input type='text' class='form-control' value='" + content + "'/>");
+            }
+
+            function toNoneEditable(row) {
+                const currentRow = $(row).closest("tr");
+                const titleTd = currentRow.find("td:eq(1)");
+                const title = $(titleTd.children()[0]).val();
+                const contentTd = currentRow.find("td:eq(2)");
+                const content = $(contentTd.children()[0]).val();
+
+                titleTd.text(title);
+                contentTd.text(content);
+            }
+
+            $("#add-button").click(function () {
+                if ($("#title").val().trim() != '') {
+
+                    let todo = {
+                        title: $("#title").val(),
+                        content: $("#content").val(),
+                        priority: $("#priority").val(),
+                        deadline: $("#deadline").val()
+                    };
+                    addTodoList(todo)
+                    // todos.push(todo);
+                    // addRowToTable(todo);
+
+                    // init fields
+                    $('#title').val('');
+                    $('#content').val('');
+                    $('#priority').val('Low');
+                    $('#deadline').val('');
+
+                } else {
+                    alert("You can't let a title field blank.");
+                }
+            });
+
+            $(document).on('click', '#complete-button', function () {
+
+                completeTodoList(this);
+            });
+
+            $(document).on('click', '#edit-button', function () {
+                $(this).prop('id', 'done-button');
+                $(this).toggleClass('btn-outline-warning btn-outline-primary');
+                $(this).html('Done');
+
+                toEditable(this);
+            });
+
+            $(document).on('click', '#done-button', function () {
+                $(this).prop('id', 'edit-button');
+                $(this).toggleClass('btn-outline-primary btn-outline-warning');
+                $(this).html('Edit');
+
+                toNoneEditable(this);
+                editTodoList(this);
+            });
+
+            $(document).on('click', '#remove-button', function () {
+                delTodoList(this);
+            });
+        });
+
+block content
+    div.container
+        div.row.justify-content-md-center
+            h1 TODO
+
+        div.row
+            table.table.table-hover
+                thead
+                    tr
+                        th(class='invisible') Id
+                        th(scope='col') Title
+                        th(scope='col') content
+                        th(scope='col') Priority
+                        th(scope='col') Deadline
+                        th(scope='col') Action
+
+                tbody#table
+                    tr
+                        td(class='invisible')
+
+                        td
+                            input#title(type='text', class='form-control')
+                        td
+                            input#content(type='text', class='form-control')
+                        td
+                            select.form-control#priority
+                                option Low
+                                option Medium
+                                option High
+                                option Critical
+                        td
+                            input#deadline(type='text', class='form-control')
+                        td
+                            button#add-button(type='button', class='btn btn-outline-primary') Add

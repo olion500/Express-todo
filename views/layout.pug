@@ -1,0 +1,25 @@
+doctype html
+html
+    head
+        title= title
+        link(rel='stylesheet', href='/stylesheets/bootstrap.min.css')
+        link(rel='stylesheet', href='/stylesheets/font-awesome-4.7.0/css/font-awesome.min.css')
+        link(rel='stylesheet', href='/scripts/pc-bootstrap4-datetimepicker/build/css/bootstrap-datetimepicker.min.css')
+        style.
+            .table td {
+                position: relative;
+            }
+
+            .invisible {
+                display: none;
+            }
+
+        script(src='/scripts/jquery/dist/jquery.js')
+        script(src='javascripts/popper-1.14.7.min.js')
+        script(src='/javascripts/bootstrap.min.js')
+        script(src='/scripts/moment/moment.js')
+        script(src='/scripts/pc-bootstrap4-datetimepicker/build/js/bootstrap-datetimepicker.min.js')
+        block scripts
+    body
+        block content
+
