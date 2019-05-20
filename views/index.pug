@@ -16,7 +16,8 @@ block scripts
                     success: function (data) {
                         todos = data;
                         invalidateTable();
-                    }
+                    },
+                    error: ajaxErrorControl
                 });
             }
 
@@ -26,8 +27,9 @@ block scripts
                     type: 'post',
                     data: todo,
                     success: function (data) {
-                    initTodoList();
-                }
+                        initTodoList();
+                    },
+                    error: ajaxErrorControl
                 });
             }
 
@@ -41,7 +43,8 @@ block scripts
                     data: {completed: true},
                     success: function (data) {
                         initTodoList();
-                    }
+                    },
+                    error: ajaxErrorControl
                 });
             }
 
@@ -63,7 +66,8 @@ block scripts
                             }
                         })
                         // do nothing.
-                    }
+                    },
+                    error: ajaxErrorControl
                 });
             }
 
@@ -76,7 +80,8 @@ block scripts
                     type: 'delete',
                     success: function (data) {
                         initTodoList();
-                    }
+                    },
+                    error: ajaxErrorControl
                 });
             }
 
@@ -121,7 +126,7 @@ block scripts
                 let disabled = '';
                 if (todo.deadline !== '') {
                     let now = moment();
-                    todo.deadline = moment(todo.deadline).format('YYYY-MM-DD hh:mm');
+                    todo.deadline = moment(todo.deadline).format('YYYY-MM-DD HH:mm');
                     if (now.diff(todo.deadline) > 0) {
                         trClass = 'table-danger';
                     }
@@ -153,6 +158,27 @@ block scripts
 
                 titleTd.text(title);
                 contentTd.text(content);
+            }
+
+            function ajaxErrorControl(jqXHR, exception) {
+                let msg = '';
+                if (jqXHR.status === 0) {
+                    msg = 'Not connect.\n Verify Network.';
+                } else if (jqXHR.status == 404) {
+                    msg = 'Requested page not found. [404]';
+                } else if (jqXHR.status == 500) {
+                    msg = 'Internal Server Error [500].';
+                } else if (exception === 'parsererror') {
+                    msg = 'Requested JSON parse failed.';
+                } else if (exception === 'timeout') {
+                    msg = 'Time out error.';
+                } else if (exception === 'abort') {
+                    msg = 'Ajax request aborted.';
+                } else {
+                    msg = 'Uncaught Error.\n' + jqXHR.responseText;
+                }
+                alert(msg);
+                console.error(msg);
             }
 
             $("#add-button").click(function () {
