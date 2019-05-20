@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 // Define Schemes
 const todoSchema = new mongoose.Schema({
         title: {type: String, required: true},
-        content: {type: String, required: true},
+        content: {type: String},
         priority: {type: String},
         completed: {type: Boolean, default: false},
         deadline: {type: Date}
